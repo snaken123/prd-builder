@@ -273,6 +273,10 @@ export function CustomerForm() {
           {status === "error" && <span className="error-msg">{error}</span>}
         </div>
       </form>
+
+      <a href="/admin" className="admin-link">
+        Admin
+      </a>
     </div>
   );
 }

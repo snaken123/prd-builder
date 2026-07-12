@@ -200,6 +200,20 @@ body {
   font-size: 0.9rem;
 }
 
+.admin-link {
+  position: fixed;
+  bottom: 12px;
+  right: 16px;
+  font-size: 0.75rem;
+  color: inherit;
+  opacity: 0.35;
+  text-decoration: none;
+}
+
+.admin-link:hover {
+  opacity: 0.8;
+}
+
 .admin-header {
   display: flex;
   align-items: flex-start;
