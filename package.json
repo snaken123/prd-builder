@@ -1,0 +1,11 @@
+{
+  "name": "prd-builder",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}
