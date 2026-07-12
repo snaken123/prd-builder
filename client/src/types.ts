@@ -14,6 +14,19 @@ export interface PRDFormData {
   notes: string;
 }
 
+export interface SubmissionSummary {
+  id: number;
+  createdAt: string;
+  appName: string;
+  tagline: string;
+  platform: string;
+}
+
+export interface SubmissionDetail extends PRDFormData {
+  id: number;
+  createdAt: string;
+}
+
 export const initialFormData: PRDFormData = {
   appName: "",
   tagline: "",
