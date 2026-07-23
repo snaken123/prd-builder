@@ -1,8 +1,8 @@
 import express from "express";
 import archiver from "archiver";
-import type { PRDFormData } from "./types.js";
-import { buildPRD, buildClaudeCodePrompt } from "./generate.js";
-import { insertSubmission, listSubmissions, getSubmission } from "./db.js";
+import type { PRDFormData, ProcessData } from "./types.js";
+import { buildPRD, buildClaudeCodePrompt, buildEnhancedPrompt } from "./generate.js";
+import { insertSubmission, listSubmissions, getSubmission, upsertProcess, getProcess } from "./db.js";
 import { createSessionCookie, clearSessionCookie, isValidSession, checkPassword } from "./auth.js";
 
 function slugify(s: string): string {
@@ -94,8 +94,10 @@ app.get("/api/submissions/:id/download", requireAdmin, async (req, res) => {
   }
 
   let row;
+  let process;
   try {
     row = await getSubmission(id);
+    process = row ? await getProcess(id) : null;
   } catch (err) {
     res.status(500).json({ error: "Failed to load submission" });
     console.error(err);
@@ -107,7 +109,7 @@ app.get("/api/submissions/:id/download", requireAdmin, async (req, res) => {
   }
 
   const prd = buildPRD(row);
-  const prompt = buildClaudeCodePrompt(row);
+  const prompt = process ? buildEnhancedPrompt(row, process) : buildClaudeCodePrompt(row);
   const slug = slugify(row.appName);
 
   res.setHeader("Content-Type", "application/zip");
@@ -121,6 +123,73 @@ app.get("/api/submissions/:id/download", requireAdmin, async (req, res) => {
   archive.append(prd, { name: "PRD.md" });
   archive.append(prompt, { name: "claude-code-prompt.md" });
   archive.finalize();
+});
+
+app.get("/api/submissions/:id/process", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  try {
+    const process = await getProcess(id);
+    res.json(process);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load process data" });
+    console.error(err);
+  }
+});
+
+app.post("/api/submissions/:id/process", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const data = req.body as ProcessData;
+  if (!data || typeof data.goalScope !== "string" || !data.goalScope) {
+    res.status(400).json({ error: "goalScope is required" });
+    return;
+  }
+
+  try {
+    const submission = await getSubmission(id);
+    if (!submission) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    await upsertProcess(id, data);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to save process data" });
+    console.error(err);
+  }
+});
+
+app.get("/api/submissions/:id/final-prompt", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  try {
+    const submission = await getSubmission(id);
+    if (!submission) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    const process = await getProcess(id);
+    if (!process) {
+      res.status(404).json({ error: "This submission has not been processed yet" });
+      return;
+    }
+    res.json({ prompt: buildEnhancedPrompt(submission, process) });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to generate prompt" });
+    console.error(err);
+  }
 });
 
 app.get("/api/health", (_req, res) => {

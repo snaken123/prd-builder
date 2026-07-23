@@ -20,12 +20,35 @@ export interface SubmissionSummary {
   appName: string;
   tagline: string;
   platform: string;
+  processed: boolean;
 }
 
 export interface SubmissionDetail extends PRDFormData {
   id: number;
   createdAt: string;
 }
+
+export interface ProcessData {
+  role: string;
+  roleOther: string;
+  goalScope: string;
+  goalDetails: string;
+  contextFlags: string[];
+  contextOther: string;
+  expectationFlags: string[];
+  expectationOther: string;
+}
+
+export const initialProcessData: ProcessData = {
+  role: "",
+  roleOther: "",
+  goalScope: "",
+  goalDetails: "",
+  contextFlags: [],
+  contextOther: "",
+  expectationFlags: [],
+  expectationOther: "",
+};
 
 export const initialFormData: PRDFormData = {
   appName: "",

@@ -1,4 +1,4 @@
-import type { PRDFormData } from "./types.js";
+import type { PRDFormData, ProcessData } from "./types.js";
 
 function list(items: string[]): string {
   return items.length ? items.map((i) => `- ${i}`).join("\n") : "- (none specified)";
@@ -69,6 +69,24 @@ ${data.notes || "(none)"}
 `;
 }
 
+const ROLE_PRESET_LABELS: Record<string, string> = {
+  senior: "Senior full-stack engineer building this from scratch",
+  contractor: "Contractor extending an existing codebase",
+  indie: "Solo indie hacker moving fast, okay with some rough edges",
+};
+
+const GOAL_SCOPE_LABELS: Record<string, string> = {
+  mvp: "Build a complete, working MVP end-to-end",
+  scaffold: "Scaffold the project structure only (no feature implementation yet)",
+  features: "Implement a specific set of features on an existing codebase",
+  infra: "Set up infrastructure / deployment only",
+};
+
+function roleLabel(process: ProcessData): string {
+  if (process.role === "other") return process.roleOther || "(not specified)";
+  return ROLE_PRESET_LABELS[process.role] || process.role || "(not specified)";
+}
+
 export function buildClaudeCodePrompt(data: PRDFormData): string {
   const audience = [...data.audience];
   if (data.audienceOther.trim()) audience.push(data.audienceOther.trim());
@@ -112,5 +130,69 @@ ${data.notes || "(none)"}
 3. Implement must-have features before nice-to-have ones.
 4. Keep the implementation as simple as correctness allows — no speculative abstractions.
 5. After scaffolding, tell me how to run the app locally.
+`;
+}
+
+export function buildEnhancedPrompt(data: PRDFormData, process: ProcessData): string {
+  const audience = [...data.audience];
+  if (data.audienceOther.trim()) audience.push(data.audienceOther.trim());
+
+  const features = [...data.features];
+  if (data.featuresOther.trim()) features.push(data.featuresOther.trim());
+
+  const context = [...process.contextFlags];
+  if (process.contextOther.trim()) context.push(process.contextOther.trim());
+
+  const expectations = [...process.expectationFlags];
+  if (process.expectationOther.trim()) expectations.push(process.expectationOther.trim());
+
+  return `You are acting as: ${roleLabel(process)}.
+
+# Goal
+${GOAL_SCOPE_LABELS[process.goalScope] || process.goalScope || "(not specified)"}
+${process.goalDetails ? `\n${process.goalDetails}\n` : ""}
+
+# App: ${data.appName || "Untitled App"}
+
+${data.tagline ? `One-line pitch: ${data.tagline}\n` : ""}
+## Problem it solves
+${data.problem || "(not specified)"}
+
+## Target audience
+${list(audience)}
+
+## Platform
+${PLATFORM_LABELS[data.platform] || data.platform || "TBD"}
+
+## Must-have features (build these first)
+${data.mustHave || "(not specified)"}
+
+## Nice-to-have features (build after must-haves, or scaffold for later)
+${data.niceToHave || "(not specified)"}
+
+## Feature checklist (reference)
+${list(features)}
+
+## User roles & permissions
+${ROLE_LABELS[data.userRoles] || data.userRoles || "TBD"}
+${data.userRoles === "multiple" && data.rolesDescription ? `Roles: ${data.rolesDescription}\n` : ""}
+
+## Additional context from the original brief
+${data.notes || "(none)"}
+
+# Additional Context
+${list(context)}
+
+# Expectations / Definition of Done
+${list(expectations)}
+
+## Instructions
+1. Propose a minimal, appropriate tech stack for this platform and these features. Explain the choice in one or two sentences.
+2. Scaffold the project structure first.
+3. Implement must-have features before nice-to-have ones.
+4. Keep the implementation as simple as correctness allows — no speculative abstractions.
+5. Meet every item listed under Expectations / Definition of Done above.
+6. You have been given a role, goal, full context, and explicit expectations, so you should have everything needed to proceed — ask clarifying questions only if something critical is still missing or contradictory. Otherwise proceed with sensible defaults and briefly explain any assumptions you make.
+7. After scaffolding, tell me how to run the app locally.
 `;
 }

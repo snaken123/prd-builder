@@ -13,3 +13,14 @@ export interface PRDFormData {
   rolesDescription: string;
   notes: string;
 }
+
+export interface ProcessData {
+  role: string;
+  roleOther: string;
+  goalScope: string;
+  goalDetails: string;
+  contextFlags: string[];
+  contextOther: string;
+  expectationFlags: string[];
+  expectationOther: string;
+}
